@@ -27,14 +27,18 @@ def main():
     ap.add_argument("--out", default="transfer/weights/demos_rgb.npz")
     ap.add_argument("--episodes", type=int, default=8)
     ap.add_argument("--config", default="configs/baseline_macro.json")
+    ap.add_argument("--patterns", nargs="*", default=None,
+                    help="optional WAD glob patterns, e.g. key_[12]; default all curriculum maps")
     args = ap.parse_args()
 
     cfg = KeyStoneConfig.load(ROOT / args.config)
     fb = FeatureBuilder(cfg)
-    maps = sorted((ROOT / "maps" / "train").glob("move_*.wad")) \
-        + sorted((ROOT / "maps" / "train").glob("nav_*.wad")) \
-        + sorted((ROOT / "maps" / "train").glob("combat_*.wad")) \
-        + sorted((ROOT / "maps" / "train").glob("key_[12].wad"))
+    patterns = args.patterns or ["move_*", "nav_*", "combat_*", "key_[12]"]
+    maps = []
+    for pat in patterns:
+        maps.extend(sorted((ROOT / "maps" / "train").glob(f"{pat}.wad")))
+    maps = list(dict.fromkeys(maps))
+    print("demo maps:", [p.name for p in maps], flush=True)
     X, RGB, E, A = [], [], [], []
     episodes, exits = 0, 0
     for wad in maps:

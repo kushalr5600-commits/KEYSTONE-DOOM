@@ -24,6 +24,7 @@ MAPS = [
     "maps/holdout/eval_move_0.wad:MAP01", "maps/holdout/eval_move_1.wad:MAP01",
     "maps/holdout/eval_nav_0.wad:MAP01", "maps/holdout/eval_nav_1.wad:MAP01",
     "maps/holdout/eval_combat_0.wad:MAP01", "maps/holdout/eval_key_1.wad:MAP01",
+    "maps/holdout/eval_key_2.wad:MAP01", "maps/holdout/eval_key_3.wad:MAP01",
 ]
 FIELDS = ["tag", "map", "episode", "seed", "exit", "keys", "kills", "damage",
           "deaths", "steps", "unique_sigs", "stuck_rate", "latency_p50_ms", "latency_p99_ms"]
@@ -35,7 +36,9 @@ def main():
     ap.add_argument("--pretrained", default="transfer/weights/find_return_11.pth.tar")
     ap.add_argument("--episodes", type=int, default=8)
     ap.add_argument("--tag", default="transfer_bc")
+    ap.add_argument("--maps", nargs="*", default=None)
     args = ap.parse_args()
+    maps = args.maps or MAPS
 
     torch.set_num_threads(1)
     ck = torch.load(ROOT / args.weights, map_location="cpu", weights_only=False)
@@ -54,7 +57,7 @@ def main():
         w = csv.DictWriter(f, fieldnames=FIELDS)
         if new:
             w.writeheader()
-        for spec in MAPS:
+        for spec in maps:
             wad, _, mp = spec.partition(":")
             for ep in range(args.episodes):
                 env = make_env(str(ROOT / wad), mp or "MAP01", episode_ticks=2100,
