@@ -74,8 +74,10 @@ two donors produce distinct policies. Both results are reported below.
 
 Per-map for `find_return_11`: move_0 8/8, move_1 8/8, nav_0 8/8, nav_1 8/8,
 combat_0 8/8, key_1 0/8. Inference p50 ≈1.0 ms, p99 ≈2.1 ms (budget 40 ms).
-A 16-episode confirmation run is in progress; results will be appended to
-`transfer/transfer_results.csv` and summarised here when complete.
+**16-episode confirmation:** `transfer_find16` achieved **80/96 exits (0.833)** — identical
+rate to the 8-episode run, so the gain is stable across 96 held-out episodes. The matched
+`baseline2_16` run was still in progress when this report was written and will be appended
+to `transfer/transfer_results.csv`.
 
 **Honest interpretation:** the 0.833 rate is measured only on our simple verified holdout
 maps. It does NOT demonstrate Tier 4 competence, and key-door-exit progression still fails
