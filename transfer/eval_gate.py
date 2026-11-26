@@ -24,6 +24,7 @@ def main():
     ap.add_argument("--tag", default="gate")
     ap.add_argument("--maps", nargs="*", default=None)
     ap.add_argument("--threshold", type=float, default=0.5)
+    ap.add_argument("--require-door", action="store_true")
     args = ap.parse_args()
 
     torch.set_num_threads(1)
@@ -70,6 +71,9 @@ def main():
                         out_s, state = model.step(parts, state, torch.tensor([event]))
                         idx = int(out_s["logits"][0].argmax())
                         signal = bool(torch.sigmoid(gate(torch.from_numpy(vec[None, :])))[0] > args.threshold)
+                    if args.require_door:
+                        door_present, _ = ctrl._door_evidence(obs)
+                        signal = signal and door_present
                     chosen = ctrl.apply(idx, obs, learned_signal=signal)
                     a = legalize_action(macro_action(chosen), pa)
                     rep += int(np.array_equal(a, pa))
