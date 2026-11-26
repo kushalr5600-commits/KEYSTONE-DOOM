@@ -147,6 +147,7 @@ def test_reward_shaper_is_finite():
     cfg = KeyStoneConfig()
     cfg.bearing_potential = 0.5
     shaper = RewardShaper(cfg)
+    shaper.reset(1)
     ex = find_exit(ROOT / "maps" / "train" / "move_0.wad", "MAP01")
     shaper.exits = [ex]
     base = {"x": 96.0, "y": 96.0, "angle": 135.0, "keys": np.zeros(6),
