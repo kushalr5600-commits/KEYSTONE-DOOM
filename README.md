@@ -1,110 +1,59 @@
-# KEYSTONE-DOOM
+# KEYSTONE-DOOM (DoorPolicyNet Candidate)
 
-**Key-Event Structured Topological Memory for Full-Gauntlet DOOM** — Yugaantar 2026 DevForge,
-Track 1 ("Can It Play DOOM?"). Repository created from the official
-[DevForge DOOM template](https://github.com/Reinforce-SST/devforge-doom-template).
+Yugaantar 2026 DevForge, Track 1 ("Can It Play DOOM?"). Built from the official DevForge DOOM template.
 
-A compact learned agent that keeps a fixed-capacity memory of progression-relevant events
-(locked doors, keys, items, enemies, interaction outcomes), retrieves them with a
-confidence-gated attention read, and conditions a learned goal head and action policy on the
-result. It uses **only** the official ego-centric observation: no engine handle, no global
-position, no hidden map data, no scripted route.
+## Status (evidence-based)
 
-## Status
+- **Frozen champion preserved** as fallback (`submission/weights/champion_frozen.pt`, `find_return_11.pth.tar`). `main` and `final-submission` not modified by this finalization pass.
+- **DoorPolicyNet candidate**: isolated package in `submission_candidate_doorpolicy/`. Matched 120-episode battery (15 maps x 8 eps, seeds 1234-1241, 2100 ticks, render_buffers=True): **120/120 exits** vs champion **88/120**. 0 deaths, no paired damage regression, 64/64 reg, 8/8 gauntlet, 24/24 keys, 32/32 door_simple, 16/16 combat holdout exits. Combat damage/kills unchanged from champion (0 kills, 369 total damage).
+- **Validation**: local official `validate.py --device cpu --ticks 420` PASS in clean temp package (init 1.7s, p50 3.1ms, p99 5.4ms, max 82ms cold start). Docker/Linux validator **not run** in this session.
+- **Publication**: **NOT PUBLISHED**. Remote publication target ambiguous (no `final-submission` branch on origin observed). No force-push/history rewrite performed.
 
-- [x] Public repo from official template; contract/rules/scoring audited with source citations
-      (`docs/official-spec-summary.md`)
-- [x] Research + licence audit (`docs/research-and-license-audit.md`)
-- [x] Architecture, memory, PPO trainer, deterministic submission agent implemented
-- [x] Unit tests: 9/9 passing; validator PASSED on baseline and trained agent (CPU mode)
-- [ ] Final training run and held-out evaluation results in `experiments/results.csv`
-- [ ] Docker/GPU validator run (not verifiable on this CPU-only Windows host)
+See `FINAL_SUBMISSION_VERIFICATION.md`, `FINAL_CANDIDATE_MANIFEST.md`, `DOORPOLICY_FINAL_PROMOTION_REPORT.md`, `transfer/DOORPOLICY_COMPLIANCE_AUDIT.md`.
 
-Never interpret unchecked boxes as completed work; exact measured results are in
-`experiments/results.csv` and the final report.
+## Architecture
 
-## Quickstart
+- **Champion backbone**: `TransferKeyStoneNet` (ray/vitals/event/RGB features + GRU) with frozen `champion_frozen.pt` and `find_return_11.pth.tar` nav backbone (from 3d_control_deep_rl, MIT).
+- **DoorPolicyNet**: learned GRU policy (`door_policy_gru.pt`) distilled from training-time DoorController signals; used at inference only through observation-derived features.
+- **Blending/gate**: candidate logit blend uses learned DoorPolicyNet logits/gate; `obs_door_mask` is an observation-derived ray predicate disclosed in compliance audit (gates blending, not a hand-written action state machine).
+- **Inference**: observation-only, deterministic argmax given same obs/state, `legalize_action` enforces contract button semantics only. No privileged coords/map state, no network, no training imports, no repo writes.
 
-Python ≥3.13 (official base image) with `uv`, or a local Python with the template deps:
+## Reproducibility / how to run
 
 ```bash
-uv sync                       # installs vizdoom, gymnasium and the editable env/ wrapper
-uv run python validate.py     # official local validator
-uv run python -m pytest -q    # unit tests (including KEYSTONE tests)
+# from repo root with env/ on PYTHONPATH
+$env:PYTHONPATH=".\env;."   # PowerShell
+python validate.py --device cpu --ticks 420
 ```
 
-Local Windows setup used during development (Python 3.12 + pip):
+Clean package verification performed by copying `submission_candidate_doorpolicy/` to `submission/` (excluding `__pycache__`) and running validator. Full clean git clone + `git lfs pull` + Docker/Linux validation still required before final publication.
 
-```bash
-pip install "vizdoom==1.3.3" "gymnasium>=1.0" numpy scipy opencv-python-headless torch pytest
-$env:PYTHONPATH = (Resolve-Path env).Path    # PowerShell: expose the official env/ wrapper
-python -m training.train --steps 30000 --out submission/weights
-python -m training.evaluate --weights submission/weights/keystone.pt --tag final
-python validate.py
-```
+## Evaluation methodology
 
-Recommended definitive check on a GPU/Linux host: `python validate.py --docker`
-(or build the image with `docker build -t devforge-doom .` first).
+- Matched champion vs candidate: identical maps/seeds/ticks/config. Battery: eval_move_0/1, eval_nav_0/1, eval_combat_0, eval_key_1/2/3, eval_gauntlet_2, door_simple_0-3, combat_holdout_0/1. 8 episodes/map, seeds 1234-1241, 2100 ticks.
+- Metrics: exits, deaths, damage, health, timeouts, keys, kills, latency. Seed-level CSV: `transfer/seed_level_comparison_v2.csv`.
+- two_rooms is a verification-only diagnostic and **not solved** (0/8); not counted as official gate.
 
-## Layout
+## Limitations
 
-```
-keystone/              architecture shared by training and inference
-  config.py            hyperparameters + ablation switches (serialized with checkpoints)
-  features.py          observation -> fixed 1249-dim vector + 16-dim evidence + event tag
-  memory.py            fixed-capacity differentiable event memory (confidence, age, attention)
-  model.py             encoders, GRU, memory read/write, goal head, actor/critic
-  actions.py           contract button-validity enforcement (shared)
-training/              our training pipeline (judges read it)
-  ppo.py               PPO + GAE + sequence replay through recurrence/memory
-  train.py             curriculum: basics -> doors -> mixed -> gauntlet
-  evaluate.py          deterministic held-out evaluation -> experiments/results.csv
-configs/               ablation configs
-submission/agent.py    official DoomAgent entry point (do not change its API)
-submission/weights/    trained weights (Git LFS)
-docs/                  contract summary, licence audit, architecture, experiments, demo
-tests/                 official wrapper tests + tests/test_keystone.py
-experiments/           JSONL training logs and results.csv
-```
+- No combat kill improvement over champion; damage unchanged.
+- two_rooms unresolved (post-door multi-room navigation).
+- Docker/Linux validator not run in this session.
+- Remote LFS/clean-clone publication verification incomplete.
+- Official scoring coefficients undisclosed; results are proxy metrics.
 
-## Reproducing the submission
+## OSS dependencies / licenses
 
-1. `python -m training.train --steps 30000 --out submission/weights` — writes
-   `submission/weights/keystone.pt` and `config.json`.
-2. `python -m training.evaluate --weights submission/weights/keystone.pt --episodes 8` — appends
-   matched metrics to `experiments/results.csv`.
-3. `python -m pytest -q` and `python validate.py` — both must pass before pushing.
-4. Commit weights with Git LFS (`git lfs track` rules are already in `.gitattributes`), push,
-   and verify `git lfs ls-files` lists `submission/weights/keystone.pt`.
+- DevForge DOOM template: cited as competition foundation; no visible software license in starter repo.
+- 3d_control_deep_rl / find_return_11 backbone: MIT (Ed Beeching). Verify redistribution terms for packaged weights in final submission context.
+- VizDoom/Gymnasium/PyTorch/numpy/scipy/opencv: per their respective licenses.
 
-## Compliance summary
+## Submission entry point
 
-- Decisions come from trained weights; no if/else action trees, A*/Dijkstra/BFS, `atan2`
-  aimbots, unmodified SB3 policies or privileged inference input.
-- `legalize_action` only enforces documented button semantics (USE/weapon edge triggers,
-  mutually exclusive movement), identically in train and inference.
-- Training-time reward shaping uses `DoomEnv.privileged_state()` as labels only; the deployed
-  agent never sees it. Intrinsic reward ≤0.02/step vs exit 10.0.
-- No network, no engine access, no repo writes at evaluation; repository mounted read-only.
-- Model: ~314k parameters, checkpoint ~1.3 MB; local p50 ≈2.6 ms, p99 ≈4.0 ms per decision
-  (budget 40 ms). VRAM/RAM limits: see `docs/official-spec-summary.md`.
+- Candidate: `submission_candidate_doorpolicy/agent.py` (`DoomAgent.reset`, `DoomAgent.act`)
+- Champion fallback: `submission/agent.py` and frozen weights under `submission/weights/`
 
-## Documentation
+## Safety
 
-| Document | Contents |
-|---|---|
-| `docs/official-spec-summary.md` | exact contract, tiers, scoring terms (weights undisclosed), limits, rule→test map |
-| `docs/research-and-license-audit.md` | six references, verified licences, reuse decisions, prior art |
-| `docs/architecture.md` | dataflow, memory schema, boundary compliance, resource profile |
-| `docs/experiment-plan.md` | curriculum, reward, benchmark protocol, ablation matrix |
-| `docs/novelty-and-limitations.md` | defensible USP, prior art, honest limitations |
-| `docs/demo-script.md` | pitch, demo sequence, judge Q&A |
-| `experiments/results.csv` | measured held-out results |
-
-## Underlying template
-
-The official starter's contract files (`docs/CONTRACT.md`, `EVALUATION.md`, `RULES.md`,
-`SUBMISSION.md`), `env/`, `validate.py`, `maps/` and `tests/fixtures/` are preserved. See the
-template [README](https://github.com/Reinforce-SST/devforge-doom-template) for base-image and
-platform notes. The starter repository has no visible software licence; we cite it as the
-competition foundation and do not claim a licence grant.
+- No unlicensed OSS combat model weights/code included. Open-source combat audit is research-only (`OPEN_SOURCE_COMBAT_MODEL_AUDIT.md`).
+- No telemetry/RRD/temp training artifacts in candidate submission package.
