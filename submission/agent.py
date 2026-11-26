@@ -1,12 +1,9 @@
-"""ISOLATED integration example — NOT part of the main submission.
+"""KEYSTONE-DOOM submission agent.
 
-Shows the exact changes required to deploy the best verified transfer checkpoint. Copy this
-file to `submission/agent.py` in the target branch/copy only after the lead agent accepts the
-measured result. Keeping it here avoids touching the primary working tree.
-
-Requires: torch, numpy, keystone (repo root), transfer/cnn_adapter.py, and weights under
-transfer/weights/. Uses ONLY the official observation dict; the pretrained conv stem is a
-fixed weight initialization, not a runtime external dependency.
+Loads the trained champion checkpoint (transfer/weights/champion_frozen.pt)
+with the MIT-licensed pretrained visual stem (transfer/weights/find_return_11.pth.tar).
+Uses only the official observation dict at inference; no privileged state, no network,
+no training/ imports.
 """
 
 from __future__ import annotations
