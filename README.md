@@ -4,10 +4,10 @@ Yugaantar 2026 DevForge, Track 1 ("Can It Play DOOM?"). Built from the official 
 
 ## Status (evidence-based)
 
-- **Frozen champion preserved** as fallback (`submission/weights/champion_frozen.pt`, `find_return_11.pth.tar`). `main` and `final-submission` not modified by this finalization pass.
-- **DoorPolicyNet candidate**: isolated package in `submission_candidate_doorpolicy/`. Matched 120-episode battery (15 maps x 8 eps, seeds 1234-1241, 2100 ticks, render_buffers=True): **120/120 exits** vs champion **88/120**. 0 deaths, no paired damage regression, 64/64 reg, 8/8 gauntlet, 24/24 keys, 32/32 door_simple, 16/16 combat holdout exits. Combat damage/kills unchanged from champion (0 kills, 369 total damage).
-- **Validation**: local official `validate.py --device cpu --ticks 420` PASS in clean temp package (init 1.7s, p50 3.1ms, p99 5.4ms, max 82ms cold start). Docker/Linux validator **not run** in this session.
-- **Publication**: **NOT PUBLISHED**. Remote publication target ambiguous (no `final-submission` branch on origin observed). No force-push/history rewrite performed.
+- **Frozen champion preserved** as fallback (`submission/weights/champion_frozen.pt`, `find_return_11.pth.tar`). `main` untouched.
+- **DoorPolicyNet candidate**: published to `origin/final-submission` (authorized, non-force push). Matched 120-episode battery (15 maps x 8 eps, seeds 1234-1241, 2100 ticks, render_buffers=True): **120/120 exits** vs champion **88/120**. 0 deaths, no paired damage regression, 64/64 reg, 8/8 gauntlet, 24/24 keys, 32/32 door_simple, 16/16 combat holdout exits. Combat damage/kills unchanged from champion (0 kills, 369 total damage).
+- **Validation**: fresh remote clean clone + LFS/weight hash verification + `python validate.py --device cpu --ticks 420` **PASS** (init 1.6s, p50 2.9ms, p99 4.6ms, max 7ms). Docker/Linux validator **not run** in this session.
+- **Publication**: **PUBLISHED** to `origin/final-submission` at commit `5e7c45487f570bfcf52bc8d5bcdd95de24ec6d70` (doc update follows). No force-push; `main` untouched.
 
 See `FINAL_SUBMISSION_VERIFICATION.md`, `FINAL_CANDIDATE_MANIFEST.md`, `DOORPOLICY_FINAL_PROMOTION_REPORT.md`, `transfer/DOORPOLICY_COMPLIANCE_AUDIT.md`.
 
@@ -21,12 +21,12 @@ See `FINAL_SUBMISSION_VERIFICATION.md`, `FINAL_CANDIDATE_MANIFEST.md`, `DOORPOLI
 ## Reproducibility / how to run
 
 ```bash
-# from repo root with env/ on PYTHONPATH
+git clone --branch final-submission --single-branch https://github.com/kushalr5600-commits/KEYSTONE-DOOM.git
+cd KEYSTONE-DOOM
+git lfs pull
 $env:PYTHONPATH=".\env;."   # PowerShell
 python validate.py --device cpu --ticks 420
 ```
-
-Clean package verification performed by copying `submission_candidate_doorpolicy/` to `submission/` (excluding `__pycache__`) and running validator. Full clean git clone + `git lfs pull` + Docker/Linux validation still required before final publication.
 
 ## Evaluation methodology
 
@@ -39,7 +39,6 @@ Clean package verification performed by copying `submission_candidate_doorpolicy
 - No combat kill improvement over champion; damage unchanged.
 - two_rooms unresolved (post-door multi-room navigation).
 - Docker/Linux validator not run in this session.
-- Remote LFS/clean-clone publication verification incomplete.
 - Official scoring coefficients undisclosed; results are proxy metrics.
 
 ## OSS dependencies / licenses
@@ -50,10 +49,10 @@ Clean package verification performed by copying `submission_candidate_doorpolicy
 
 ## Submission entry point
 
-- Candidate: `submission_candidate_doorpolicy/agent.py` (`DoomAgent.reset`, `DoomAgent.act`)
-- Champion fallback: `submission/agent.py` and frozen weights under `submission/weights/`
+- `submission/agent.py` (`DoomAgent.reset`, `DoomAgent.act`)
+- Weights: `submission/weights/champion_frozen.pt`, `find_return_11.pth.tar`, `door_policy_gru.pt`
 
 ## Safety
 
 - No unlicensed OSS combat model weights/code included. Open-source combat audit is research-only (`OPEN_SOURCE_COMBAT_MODEL_AUDIT.md`).
-- No telemetry/RRD/temp training artifacts in candidate submission package.
+- No telemetry/RRD/temp training artifacts in submission package.
