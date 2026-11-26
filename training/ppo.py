@@ -99,6 +99,15 @@ class RewardShaper:
             d0 = math.hypot(prev_priv["x"] - ex[0], prev_priv["y"] - ex[1])
             d1 = math.hypot(priv["x"] - ex[0], priv["y"] - ex[1])
             r += c.exit_potential * (d0 - d1) / 128.0
+            e0 = self._bearing_error(prev_priv, ex)
+            e1 = self._bearing_error(priv, ex)
+            r += c.bearing_potential * (e0 - e1)
+
+    @staticmethod
+    def _bearing_error(priv: dict, ex) -> float:
+        desired = math.degrees(math.atan2(ex[1] - priv["y"], ex[0] - priv["x"]))
+        err = (desired - priv["angle"] + 180.0) % 360.0 - 180.0
+        return abs(err) / 180.0
         keys = np.asarray(priv["keys"], dtype=np.float32)
         prev_keys = np.asarray(prev_priv["keys"], dtype=np.float32)
         r += c.reward_key * float(np.sum(keys > prev_keys + 0.5))

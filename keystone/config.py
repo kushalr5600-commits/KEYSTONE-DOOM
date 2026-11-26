@@ -50,6 +50,9 @@ class KeyStoneConfig:
     # Training-only distance-progress shaping toward the exit: k*(d_prev-d_now)/128.
     # Zero for standing still / loops; never part of the deployed observation.
     exit_potential: float = 1.0
+    # Training-only orientation shaping toward the exit (bearing error reduction).
+    # Distance shaping alone gives zero gradient for turning when wedged against a wall.
+    bearing_potential: float = 0.5
     reward_key: float = 1.0
     reward_unlock: float = 0.5
     # Novelty must never rival exit completion: 0.002 vs exit 20.0.

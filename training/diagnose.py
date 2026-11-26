@@ -142,7 +142,7 @@ def main():
             print(f"  {n:12s} {suppressed[i]:6d}")
     print("=== TOP MACRO ACTIONS (binary -> count) ===")
     for code, cnt in macros.most_common(12):
-        print(f"  {code:09b} {cnt:6d}  {[names[i] for i in range(9) if code & (1 << i)]}")
+        print(f"  {code:09b} {cnt:6d}  {[names[i] for i in range(9) if code & (1 << (8 - i))]}")
     print("=== USE OUTCOMES ===", dict(use_events))
     print("=== EPISODES ===")
     for e in episodes:
