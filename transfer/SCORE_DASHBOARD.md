@@ -29,6 +29,7 @@ this is a transparent local proxy, not an official score estimate.
 | Normal-door demos + 40% USE oversampling | Teach USE on event-2 doors | 0/32 tier2 | 8/8 on one door_simple variant, 0 on others; door bouncing | rejected |
 | Same demos with 12% USE | Avoid door reversal | 0/32 tier2 | 0 USE presses, stuck | rejected |
 | Recurrent sequence BC (GRU, 3 epochs) | temporal memory can learn "USE once, then wait" | 0/32 tier2 | 0/48 tier2 — worse | rejected |
+| Recurrent sequence BC (GRU, 10 epochs) | longer temporal training might generalise doors | 0/32 tier2 | 16/32 on training door variants, 0/32 unseen doors, and key maps regressed 48/48 → 0/24 | rejected (catastrophic regression) |
 | Champion | freeze | 128/128 generated holdout | unchanged | **kept as control** |
 
 Asset audit: `transfer/ASSET_AUDIT.md`. No external door-interaction dataset or compatible
