@@ -65,7 +65,7 @@ def oracle_episode(wad, ticks=2100, seed=0):
         target = ex
         if keys and not np.any(np.asarray(st["keys"]) > 0.5):
             target = keys[0]
-        elif doors and ex is not None and st["x"] < 520:
+        elif doors and ex is not None and st["x"] < max(d[0] for d in doors) + 20:
             # Walk to the nearest door first; after crossing it (x > 520) head to exit.
             target = min(doors, key=lambda p: (p[0]-st["x"])**2 + (p[1]-st["y"])**2)
         if target is None:

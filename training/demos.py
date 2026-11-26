@@ -39,7 +39,7 @@ def oracle_action(obs, st, ex, keys, doors):
     target = ex
     if keys and not np.any(np.asarray(st["keys"]) > 0.5):
         target = keys[0]
-    elif doors and ex is not None and st["x"] < 520:
+    elif doors and ex is not None and st["x"] < max(d[0] for d in doors) + 20:
         target = min(doors, key=lambda p: (p[0]-st["x"])**2 + (p[1]-st["y"])**2)
     a = np.zeros(9, np.int8)
     if target is not None:
