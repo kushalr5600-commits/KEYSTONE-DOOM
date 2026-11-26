@@ -89,13 +89,14 @@ class RewardShaper:
             r += c.reward_exit
         if priv["dead"]:
             r += c.reward_death
-        # Potential-based shaping toward the exit: F = gamma*Phi(s') - Phi(s),
-        # Phi(s) = -exit_potential * distance(s, exit)/128. Training labels only.
+        # Distance-progress shaping toward the exit: F = k*(d(s)-d(s'))/128.
+        # A loop or standing still nets zero/negative, so it cannot be farmed.
+        # Training labels only; never visible to the deployed agent.
         ex = self.exits[env_i] if env_i < len(self.exits) else None
         if ex is not None:
             d0 = math.hypot(prev_priv["x"] - ex[0], prev_priv["y"] - ex[1])
             d1 = math.hypot(priv["x"] - ex[0], priv["y"] - ex[1])
-            r += c.exit_potential * (d0 - c.gamma * d1) / 128.0
+            r += c.exit_potential * (d0 - d1) / 128.0
         keys = np.asarray(priv["keys"], dtype=np.float32)
         prev_keys = np.asarray(prev_priv["keys"], dtype=np.float32)
         r += c.reward_key * float(np.sum(keys > prev_keys + 0.5))

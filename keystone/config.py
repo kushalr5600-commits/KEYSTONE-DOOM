@@ -42,9 +42,9 @@ class KeyStoneConfig:
     # Shaping (training only; never used by the deployed agent)
     reward_exit: float = 10.0
     reward_death: float = -3.0
-    # Training-only potential-based shaping toward the exit (gamma*Phi(s')-Phi(s)).
-    # Phi = -exit_potential*distance/128. Never part of deployed observation.
-    exit_potential: float = 0.25
+    # Training-only distance-progress shaping toward the exit: k*(d_prev-d_now)/128.
+    # Zero for standing still / loops; never part of the deployed observation.
+    exit_potential: float = 0.5
     reward_key: float = 1.0
     reward_unlock: float = 0.5
     reward_new_signature: float = 0.02

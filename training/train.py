@@ -61,11 +61,13 @@ def map_pools():
 
 
 def stage_for(frac: float) -> str:
-    if frac < 0.25:
-        return "basics"
+    # Long basics phase: learning exit completion on tiny maps is the score-dominant
+    # behaviour; only then move to doors and the larger gauntlet maps.
     if frac < 0.50:
+        return "basics"
+    if frac < 0.70:
         return "doors"
-    if frac < 0.75:
+    if frac < 0.85:
         return "mixed"
     return "gauntlet"
 
