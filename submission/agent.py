@@ -27,7 +27,7 @@ class DoomAgent:
     def __init__(self, observation_space, action_space, device: str):
         self.device = "cuda" if str(device) == "cuda" and torch.cuda.is_available() else "cpu"
         torch.set_num_threads(1)
-        ck = torch.load(W / "transfer_prog_bal.pt", map_location=self.device, weights_only=False)
+        ck = torch.load(W / "champion_frozen.pt", map_location=self.device, weights_only=False)
         self.cfg = KeyStoneConfig(**ck.get("config", {}))
         self.fb = FeatureBuilder(self.cfg)
         self.model = TransferKeyStoneNet(self.cfg, W / "find_return_11.pth.tar").to(self.device)
