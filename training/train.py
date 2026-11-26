@@ -211,6 +211,8 @@ def main():
     log_f.close()
     for e in envs:
         e.close()
+    if device.type == "cuda":
+        print(f"peak VRAM allocated: {torch.cuda.max_memory_allocated() / 1024**2:.1f} MB", flush=True)
     print(f"DONE step={step} wall={time.perf_counter() - t0:.1f}s weights={out / 'keystone.pt'}", flush=True)
 
 

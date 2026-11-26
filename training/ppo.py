@@ -161,11 +161,11 @@ class PPOTrainer:
         with torch.no_grad():
             for t in range(T):
                 # Current state snapshots BEFORE the step (for sequence replay).
-                buf.h0[t] = states.h.numpy()
-                buf.mem_emb[t] = states.mem.emb.numpy()
-                buf.mem_etype[t] = states.mem.etype.numpy()
-                buf.mem_conf[t] = states.mem.conf.numpy()
-                buf.mem_age[t] = states.mem.age.numpy()
+                buf.h0[t] = states.h.detach().cpu().numpy()
+                buf.mem_emb[t] = states.mem.emb.detach().cpu().numpy()
+                buf.mem_etype[t] = states.mem.etype.detach().cpu().numpy()
+                buf.mem_conf[t] = states.mem.conf.detach().cpu().numpy()
+                buf.mem_age[t] = states.mem.age.detach().cpu().numpy()
                 feats = np.zeros((N, F), np.float32)
                 events = np.zeros(N, np.int64)
                 for i, env in enumerate(envs):
@@ -177,7 +177,7 @@ class PPOTrainer:
                                                  torch.from_numpy(events).to(device))
                 if cfg.action_mode == "macro":
                     dist = Categorical(logits=out["logits"])
-                    idx = dist.sample().numpy()
+                    idx = dist.sample().cpu().numpy()
                     actions = np.stack([
                         legalize_action(macro_action(idx[i]), prev_actions[i]) for i in range(N)
                     ])
@@ -185,7 +185,7 @@ class PPOTrainer:
                     buf.macro_idx[t] = idx
                 else:
                     dist = Bernoulli(logits=out["logits"])
-                    sample = dist.sample().numpy().astype(np.int8)
+                    sample = dist.sample().cpu().numpy().astype(np.int8)
                     actions = np.stack([
                         legalize_action(sample[i], prev_actions[i]) for i in range(N)
                     ])
@@ -193,7 +193,7 @@ class PPOTrainer:
                 buf.feats[t], buf.events[t] = feats, events
                 buf.actions[t], buf.prev_actions[t] = actions, prev_actions
                 buf.old_logp[t] = logp
-                buf.values[t] = out["value"].numpy()
+                buf.values[t] = out["value"].detach().cpu().numpy()
                 buf.ep_ids[t] = ep_ids
 
                 for i, env in enumerate(envs):
@@ -219,18 +219,18 @@ class PPOTrainer:
                     prev_actions[i] = actions[i].copy()
                     prev_privs[i] = priv
 
-                done_mask = torch.from_numpy(buf.dones[t].astype(np.float32))
+                done_mask = torch.from_numpy(buf.dones[t].astype(np.float32)).to(device)
                 states = new_state if t == T - 1 else new_state.reset(done_mask)
                 if t == T - 1:
-                    buf.last_h = states.h.numpy().copy()
-                    buf.last_mem = tuple(x.numpy().copy() for x in (
+                    buf.last_h = states.h.detach().cpu().numpy().copy()
+                    buf.last_mem = tuple(x.detach().cpu().numpy().copy() for x in (
                         states.mem.emb, states.mem.etype, states.mem.conf, states.mem.age))
         # Bootstrap value from the final state.
         with torch.no_grad():
             last_feats = torch.from_numpy(feats).to(device, non_blocking=True)
             out, _ = self.model.step(fb.split(last_feats), states,
                                      torch.from_numpy(events).to(device))
-            buf.last_value = out["value"].numpy().copy()
+            buf.last_value = out["value"].detach().cpu().numpy().copy()
         return buf, states, prev_evs, prev_actions, ep_ids
 
     def update(self, buf: Rollout, fb) -> dict:

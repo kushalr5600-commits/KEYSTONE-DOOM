@@ -30,6 +30,7 @@ def main():
     ap.add_argument("--pretrained", default="transfer/weights/find_return_11.pth.tar")
     ap.add_argument("--config", default="configs/baseline_macro.json")
     ap.add_argument("--epochs", type=int, default=4)
+    ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--out", default="transfer/weights/transfer_bc.pt")
     add_device_arg(ap)
@@ -63,8 +64,8 @@ def main():
         t0 = time.perf_counter()
         perm = rng.permutation(n)
         loss_sum, correct = 0.0, 0
-        for start in range(0, n, 256):
-            idx = torch.from_numpy(perm[start:start + 256]).to(device, non_blocking=True)
+        for start in range(0, n, args.batch):
+            idx = torch.from_numpy(perm[start:start + args.batch]).to(device, non_blocking=True)
             parts = fb.split(X[idx])
             parts["rgb"] = RGB[idx]
             out, _ = model.step(parts, model.initial_state(len(idx), device=device),
@@ -85,6 +86,9 @@ def main():
                 "step": 0, "transfer_from": str(args.pretrained),
                 "base_checkpoint": str(args.base)}, out)
     cfg.save(out.parent / "config.json")
+    if device.type == "cuda":
+        print(f"peak VRAM allocated: {torch.cuda.max_memory_allocated() / 1024**2:.1f} MB",
+              flush=True)
     print("wrote", out)
 
 
