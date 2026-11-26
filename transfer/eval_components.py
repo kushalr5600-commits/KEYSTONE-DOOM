@@ -86,8 +86,11 @@ def main():
                         signal = (bool(torch.sigmoid(gate(torch.from_numpy(vec[None, :])))[0] > 0.5)
                                   if gate is not None else None)
                     lat.append((time.perf_counter() - t) * 1000)
-                    door_present, _ = ctrl._door_evidence(obs)
-                    chosen = ctrl.apply(idx, obs, learned_signal=(signal and door_present) if gate is not None else None)
+                    if gate is None:
+                        chosen = idx  # untouched champion policy
+                    else:
+                        door_present, _ = ctrl._door_evidence(obs)
+                        chosen = ctrl.apply(idx, obs, learned_signal=(signal and door_present))
                     a = legalize_action(macro_action(chosen), pa)
                     sig = bytes(np.clip((np.asarray(obs["rays"]["distance"]) * 16).astype(np.uint8), 0, 255))
                     sigs.append(sig)
