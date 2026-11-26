@@ -60,7 +60,7 @@ class DoorController:
         enemies = np.any(hit[list(FRONT)] == 4)
         return bool(np.sum(near) >= self.cfg.min_door_rays), enemies
 
-    def apply(self, macro_idx: int, obs) -> int:
+    def apply(self, macro_idx: int, obs, learned_signal: bool | None = None) -> int:
         c = self.cfg
         if self.cooldown > 0:
             self.cooldown -= 1
@@ -68,9 +68,11 @@ class DoorController:
         self.door_streak = self.door_streak + 1 if door else 0
 
         if self.phase == "policy":
-            # Only intervene for a persistent, near, front-facing door and no visible enemy.
-            if door and not enemies and self.door_streak >= c.persist_steps \
-                    and self.cooldown == 0 and self.locked_steps < c.max_locked_steps:
+            # Learned gate replaces the hand-written trigger when supplied; otherwise the
+            # original observation rule is used (for teacher data collection only).
+            trigger = learned_signal if learned_signal is not None else (
+                door and not enemies and self.door_streak >= c.persist_steps)
+            if trigger and self.cooldown == 0 and self.locked_steps < c.max_locked_steps:
                 self.phase = "use"
                 self.timer = 1
                 self.interventions += 1
