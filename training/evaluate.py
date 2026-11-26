@@ -99,10 +99,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--weights", default="submission/weights/keystone.pt")
     ap.add_argument("--maps", nargs="+", default=[
-        "maps/two_rooms.wad:MAP01",
-        "tests/fixtures/509aca7cabb8cd7f.wad:MAP01",
-        "tests/fixtures/5c688a052900e964.wad:MAP01",
-        "tests/fixtures/9a5147dc56a65733.wad:MAP01",
+        "maps/holdout/eval_move_0.wad:MAP01",
+        "maps/holdout/eval_move_1.wad:MAP01",
+        "maps/holdout/eval_nav_0.wad:MAP01",
+        "maps/holdout/eval_nav_1.wad:MAP01",
+        "maps/holdout/eval_combat_0.wad:MAP01",
+        "maps/holdout/eval_key_1.wad:MAP01",
     ])
     ap.add_argument("--episodes", type=int, default=6)
     ap.add_argument("--ticks", type=int, default=2100)

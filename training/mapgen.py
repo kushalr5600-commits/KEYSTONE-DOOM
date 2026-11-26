@@ -75,12 +75,33 @@ def make_curriculum():
     return specs
 
 
+def make_holdout():
+    """Separate maps for held-out evaluation; never used in any curriculum stage."""
+    d = ROOT / "maps" / "holdout"
+    specs = []
+    for i, (px, py, angle) in enumerate([(128, 110, 135), (144, 96, -135), (112, 110, 70)]):
+        specs.append((f"eval_move_{i}", generate("two", d / f"eval_move_{i}.wad",
+                      [(px, py, PLAYER, angle)])))
+    for i, (px, py, angle) in enumerate([(128, 110, -70), (144, 110, 160)]):
+        specs.append((f"eval_nav_{i}", generate("two", d / f"eval_nav_{i}.wad",
+                      [(px, py, PLAYER, angle)])))
+    for i, (mx, my) in enumerate([(240, 110), (210, 96)]):
+        specs.append((f"eval_combat_{i}", generate("two", d / f"eval_combat_{i}.wad",
+                      [(96, 96, PLAYER, 0), (mx, my, IMP, 180)])))
+    for i, (kx, ky) in enumerate([(176, 110), (192, 96)]):
+        specs.append((f"eval_key_{i}", generate("locked", d / f"eval_key_{i}.wad",
+                      [(96, 96, PLAYER, 0), (kx, ky, BLUE_CARD, 0)])))
+    return specs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--holdout", action="store_true")
     args = ap.parse_args()
-    specs = make_curriculum()
-    print(f"generated {len(specs)} maps under maps/train/")
+    specs = make_holdout() if args.holdout else make_curriculum()
+    folder = "maps/holdout/" if args.holdout else "maps/train/"
+    print(f"generated {len(specs)} maps under {folder}")
     if args.verify:
         from training.verify_maps import verify_all
         verify_all([p for _, p in specs])
