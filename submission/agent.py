@@ -1,13 +1,29 @@
-"""Evaluation entry point. The scorer instantiates DoomAgent from this file.
+"""Evaluation entry point: learned KEYSTONE-DOOM agent.
 
-Contract: docs/CONTRACT.md §6. This baseline acts randomly. Replace it with your trained agent.
+Contract: docs/CONTRACT.md §6. The official scorer instantiates ``DoomAgent`` once, calls
+``reset()`` before every map and ``act(observation)`` once per 4 engine tics.
+
+This agent uses ONLY the official observation dictionary. It holds a recurrent state and
+a fixed-capacity learned event memory, both cleared in ``reset()``. All action choices come
+from trained network weights; the only post-processing is contract button-validity
+enforcement (keystone.actions.legalize_action), shared with training.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
+import torch
+
+from keystone import (
+    AgentState,
+    FeatureBuilder,
+    KeyStoneConfig,
+    KeyStoneNet,
+    legalize_action,
+)
 
 SUBMISSION_DIR = Path(__file__).resolve().parent
 WEIGHTS_DIR = SUBMISSION_DIR / "weights"
@@ -15,15 +31,47 @@ WEIGHTS_DIR = SUBMISSION_DIR / "weights"
 
 class DoomAgent:
     def __init__(self, observation_space, action_space, device: str):
-        """Called once. Load weights here (e.g. from WEIGHTS_DIR) onto `device` ("cuda" or "cpu")."""
         self.observation_space = observation_space
         self.action_space = action_space
-        self.device = device
-        self.rng = np.random.default_rng(0)
+        self.device = "cuda" if str(device) == "cuda" and torch.cuda.is_available() else "cpu"
+
+        cfg_path = WEIGHTS_DIR / "config.json"
+        try:
+            self.cfg = KeyStoneConfig.load(cfg_path)
+        except (OSError, ValueError, TypeError):
+            self.cfg = KeyStoneConfig()
+        self.fb = FeatureBuilder(self.cfg)
+        torch.set_num_threads(1)  # evaluation gives exactly one CPU thread
+        self.model = KeyStoneNet(self.cfg).to(self.device).eval()
+
+        ckpt = torch.load(WEIGHTS_DIR / "keystone.pt", map_location=self.device,
+                          weights_only=False)
+        self.model.load_state_dict(ckpt["model"])
+        self.model.eval()
+
+        self.state: AgentState = self.model.initial_state(1, device=self.device)
+        self.prev_evidence = np.zeros(16, dtype=np.float32)
+        self.prev_action = np.zeros(9, dtype=np.int8)
+        self.n_calls = 0
 
     def reset(self) -> None:
-        """Called before every map. Clear recurrent state, memory buffers and trackers here."""
+        """Called before every map: clear all recurrent and episodic state."""
+        self.state = self.model.initial_state(1, device=self.device)
+        self.prev_evidence = np.zeros(16, dtype=np.float32)
+        self.prev_action = np.zeros(9, dtype=np.int8)
+        self.n_calls = 0
 
     def act(self, observation: dict) -> np.ndarray:
-        """Return a MultiBinary action: int array of shape action_space.shape with values in {0, 1}."""
-        return self.rng.integers(0, 2, size=self.action_space.shape, dtype=np.int8)
+        vec, evidence, event = self.fb(observation, self.prev_evidence, self.prev_action)
+        x = torch.from_numpy(vec[None, :]).to(self.device)
+        parts = self.fb.split(x)
+        with torch.inference_mode():
+            out, self.state = self.model.step(
+                parts, self.state, torch.tensor([event], device=self.device, dtype=torch.long))
+            logits = out["logits"][0].cpu().numpy()
+        sampled = (logits > 0.0).astype(np.int8)  # argmax per Bernoulli button
+        action = legalize_action(sampled, self.prev_action)
+        self.prev_action = action.copy()
+        self.prev_evidence = evidence
+        self.n_calls += 1
+        return action

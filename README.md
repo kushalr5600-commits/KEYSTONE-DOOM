@@ -1,88 +1,110 @@
-# devforge-doom-template
+# KEYSTONE-DOOM
 
-Starter template for **Yugaantar 2026 · DevForge — Track 1: "Can It Play DOOM?"**
+**Key-Event Structured Topological Memory for Full-Gauntlet DOOM** — Yugaantar 2026 DevForge,
+Track 1 ("Can It Play DOOM?"). Repository created from the official
+[DevForge DOOM template](https://github.com/Reinforce-SST/devforge-doom-template).
 
-> For decades, *"Can it run DOOM?"* was the ultimate hardware test. Now: **can your neural network
-> actually play DOOM?** Train an agent that plays unseen levels **zero-shot**: survive ambushes,
-> navigate multi-room layouts, find keycards, unlock doors and reach the exit.
+A compact learned agent that keeps a fixed-capacity memory of progression-relevant events
+(locked doors, keys, items, enemies, interaction outcomes), retrieves them with a
+confidence-gated attention read, and conditions a learned goal head and action policy on the
+result. It uses **only** the official ego-centric observation: no engine handle, no global
+position, no hidden map data, no scripted route.
 
-No dataset is provided. Your agent learns by interacting with the engine.
+## Status
+
+- [x] Public repo from official template; contract/rules/scoring audited with source citations
+      (`docs/official-spec-summary.md`)
+- [x] Research + licence audit (`docs/research-and-license-audit.md`)
+- [x] Architecture, memory, PPO trainer, deterministic submission agent implemented
+- [x] Unit tests: 9/9 passing; validator PASSED on baseline and trained agent (CPU mode)
+- [ ] Final training run and held-out evaluation results in `experiments/results.csv`
+- [ ] Docker/GPU validator run (not verifiable on this CPU-only Windows host)
+
+Never interpret unchecked boxes as completed work; exact measured results are in
+`experiments/results.csv` and the final report.
 
 ## Quickstart
 
-1. Click **"Use this template"** on GitHub to create your team's (public) repository.
-2. Set up the environment (Python 3.13, [uv](https://docs.astral.sh/uv/)):
+Python ≥3.13 (official base image) with `uv`, or a local Python with the template deps:
 
-   ```bash
-   uv sync                 # installs vizdoom, gymnasium and the official wrapper (env/) in editable mode
-   uv run python validate.py
-   ```
-
-   Or use the official image, which is exactly what the scorer runs:
-
-   ```bash
-   docker build -t devforge-doom .            # or: docker pull <official image tag, announced>
-   python validate.py --docker --image devforge-doom   # installs requirements.txt, then runs sandboxed like the scorer
-   ```
-
-3. Replace the random baseline in `submission/agent.py` with your trained agent.
-4. Put weights in `submission/weights/` (Git LFS) and training code in `training/`.
-5. Run `python validate.py --docker` and submit your repo URL.
-
-**Platforms:** Linux (x86-64/ARM), macOS on Apple Silicon (macOS 15+) and Windows (x86-64) all
-work with `uv sync` and `validate.py`. Intel Macs have no `vizdoom` 1.3.3 wheel: use Docker or a
-Linux machine. Evaluation runs on Linux, so `validate.py --docker` is the closest check.
-
-## Repository layout
-
-```
-env/                  official ViZDoom Gymnasium wrapper (doom_env): spaces, sensors, protocol, limits
-maps/                 one small test map (NOT an evaluation map); bring your own for training
-submission/agent.py   your DoomAgent: the evaluation entry point
-submission/weights/   model weights (Git LFS)
-training/             your training pipeline
-validate.py           run before submitting
-tests/                tests for the wrapper and validator (uv run pytest)
-docs/                 contract, rules, submission guide, evaluation details
+```bash
+uv sync                       # installs vizdoom, gymnasium and the editable env/ wrapper
+uv run python validate.py     # official local validator
+uv run python -m pytest -q    # unit tests (including KEYSTONE tests)
 ```
 
-## Using the environment
+Local Windows setup used during development (Python 3.12 + pip):
 
-```python
-from doom_env import make_env
-
-env = make_env("maps/two_rooms.wad")     # test map; use your own maps for training
-obs, info = env.reset(seed=0)
-obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
+```bash
+pip install "vizdoom==1.3.3" "gymnasium>=1.0" numpy scipy opencv-python-headless torch pytest
+$env:PYTHONPATH = (Resolve-Path env).Path    # PowerShell: expose the official env/ wrapper
+python -m training.train --steps 30000 --out submission/weights
+python -m training.evaluate --weights submission/weights/keystone.pt --tag final
+python validate.py
 ```
 
-Observations are a dict of `rgb`, `depth`, `vitals`, `rays` and `visible_entities`, all
-ego-centric and partially observable. See [docs/CONTRACT.md](docs/CONTRACT.md).
-The wrapper's `reward` is a basic default for convenience. Shape your own reward for training.
+Recommended definitive check on a GPU/Linux host: `python validate.py --docker`
+(or build the image with `docker build -t devforge-doom .` first).
 
-**Compute tip:** training only on raw pixels is expensive. The `rays`, `visible_entities` and
-`vitals` signals run thousands of steps per second on a CPU. Hybrid pixel + spatial models are welcome.
+## Layout
 
-## Hardware at evaluation
+```
+keystone/              architecture shared by training and inference
+  config.py            hyperparameters + ablation switches (serialized with checkpoints)
+  features.py          observation -> fixed 1249-dim vector + 16-dim evidence + event tag
+  memory.py            fixed-capacity differentiable event memory (confidence, age, attention)
+  model.py             encoders, GRU, memory read/write, goal head, actor/critic
+  actions.py           contract button-validity enforcement (shared)
+training/              our training pipeline (judges read it)
+  ppo.py               PPO + GAE + sequence replay through recurrence/memory
+  train.py             curriculum: basics -> doors -> mixed -> gauntlet
+  evaluate.py          deterministic held-out evaluation -> experiments/results.csv
+configs/               ablation configs
+submission/agent.py    official DoomAgent entry point (do not change its API)
+submission/weights/    trained weights (Git LFS)
+docs/                  contract summary, licence audit, architecture, experiments, demo
+tests/                 official wrapper tests + tests/test_keystone.py
+experiments/           JSONL training logs and results.csv
+```
 
-One NVIDIA **RTX 3090 (24 GB)** shared between evaluation workers. Each agent gets **2 GB VRAM,
-8 GB RAM and 1 CPU thread**, so keep models compact and inference fast
-(see [hardware](docs/EVALUATION.md#hardware) and [timeouts](docs/EVALUATION.md#timeouts)).
-`validate.py` runs your agent under the same CPU/RAM limits and reports GPU memory.
+## Reproducing the submission
+
+1. `python -m training.train --steps 30000 --out submission/weights` — writes
+   `submission/weights/keystone.pt` and `config.json`.
+2. `python -m training.evaluate --weights submission/weights/keystone.pt --episodes 8` — appends
+   matched metrics to `experiments/results.csv`.
+3. `python -m pytest -q` and `python validate.py` — both must pass before pushing.
+4. Commit weights with Git LFS (`git lfs track` rules are already in `.gitattributes`), push,
+   and verify `git lfs ls-files` lists `submission/weights/keystone.pt`.
+
+## Compliance summary
+
+- Decisions come from trained weights; no if/else action trees, A*/Dijkstra/BFS, `atan2`
+  aimbots, unmodified SB3 policies or privileged inference input.
+- `legalize_action` only enforces documented button semantics (USE/weapon edge triggers,
+  mutually exclusive movement), identically in train and inference.
+- Training-time reward shaping uses `DoomEnv.privileged_state()` as labels only; the deployed
+  agent never sees it. Intrinsic reward ≤0.02/step vs exit 10.0.
+- No network, no engine access, no repo writes at evaluation; repository mounted read-only.
+- Model: ~314k parameters, checkpoint ~1.3 MB; local p50 ≈2.6 ms, p99 ≈4.0 ms per decision
+  (budget 40 ms). VRAM/RAM limits: see `docs/official-spec-summary.md`.
 
 ## Documentation
 
-| Doc | What's inside |
-| --- | --- |
-| [docs/CONTRACT.md](docs/CONTRACT.md) | Observation/action spaces and the `DoomAgent` interface |
-| [docs/RULES.md](docs/RULES.md) | Ground rules: what's allowed, what gets you disqualified |
-| [docs/SUBMISSION.md](docs/SUBMISSION.md) | Submission checklist, Git LFS, 1 GB limit, `requirements.txt` |
-| [docs/EVALUATION.md](docs/EVALUATION.md) | Map tiers, scoring categories, timeouts, replays |
+| Document | Contents |
+|---|---|
+| `docs/official-spec-summary.md` | exact contract, tiers, scoring terms (weights undisclosed), limits, rule→test map |
+| `docs/research-and-license-audit.md` | six references, verified licences, reuse decisions, prior art |
+| `docs/architecture.md` | dataflow, memory schema, boundary compliance, resource profile |
+| `docs/experiment-plan.md` | curriculum, reward, benchmark protocol, ablation matrix |
+| `docs/novelty-and-limitations.md` | defensible USP, prior art, honest limitations |
+| `docs/demo-script.md` | pitch, demo sequence, judge Q&A |
+| `experiments/results.csv` | measured held-out results |
 
-## Rules in one minute
+## Underlying template
 
-- Actions must come from **trained neural parameters**: no rule trees, no `A*`/Dijkstra, no `atan2` aimbots,
-  no unmodified off-the-shelf SB3.
-- Change anything you want **during training**. Evaluation uses the **vanilla engine**, the
-  official wrapper and **unseen maps**.
-- Create the repo during the hackathon. Libraries are fine; the core architecture and training must be yours.
+The official starter's contract files (`docs/CONTRACT.md`, `EVALUATION.md`, `RULES.md`,
+`SUBMISSION.md`), `env/`, `validate.py`, `maps/` and `tests/fixtures/` are preserved. See the
+template [README](https://github.com/Reinforce-SST/devforge-doom-template) for base-image and
+platform notes. The starter repository has no visible software licence; we cite it as the
+competition foundation and do not claim a licence grant.
