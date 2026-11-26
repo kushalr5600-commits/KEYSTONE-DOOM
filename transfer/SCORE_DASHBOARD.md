@@ -28,7 +28,12 @@ this is a transparent local proxy, not an official score estimate.
 | Harder combat maps | Test combat score under threat | 24/24 exits but 0 kills | still 0 kills/damage; exits fast | keep as control, no combat reward signal |
 | Normal-door demos + 40% USE oversampling | Teach USE on event-2 doors | 0/32 tier2 | 8/8 on one door_simple variant, 0 on others; door bouncing | rejected |
 | Same demos with 12% USE | Avoid door reversal | 0/32 tier2 | 0 USE presses, stuck | rejected |
+| Recurrent sequence BC (GRU, 3 epochs) | temporal memory can learn "USE once, then wait" | 0/32 tier2 | 0/48 tier2 — worse | rejected |
 | Champion | freeze | 128/128 generated holdout | unchanged | **kept as control** |
+
+Asset audit: `transfer/ASSET_AUDIT.md`. No external door-interaction dataset or compatible
+pretrained policy was found; the only directly reusable asset remains the MIT visual encoder
+already in the champion.
 
 Tier2 door interaction remains the highest-impact verified bottleneck. The underlying issue is
 that the reactive champion sees a door ray for hundreds of steps but either never presses USE
