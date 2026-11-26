@@ -58,7 +58,7 @@ def main():
             wad, _, mp = spec.partition(":")
             for ep in range(args.episodes):
                 env = make_env(str(ROOT / wad), mp or "MAP01", episode_ticks=2100,
-                               render_buffers=False)
+                               render_buffers=True)
                 obs, _ = env.reset(seed=1234 + ep)
                 state, ctrl = model.initial_state(1), DoorController()
                 pe = np.zeros(16, np.float32); pa = np.zeros(9, np.int8)
