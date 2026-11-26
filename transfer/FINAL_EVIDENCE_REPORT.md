@@ -40,10 +40,10 @@ p99 ~1.5–4 ms.
 ## Full-gauntlet-style test
 
 An oracle-verified held-out map combining key, locked door and a monster
-(`maps/holdout/eval_gauntlet_2.wad`, oracle exit in 201 steps) was generated. Champion and
-transfer_find evaluations were launched; results will be appended to
-`transfer/transfer_results.csv`. This is still a simplified proxy, **not** the official
-hidden Tier 4 suite.
+(`maps/holdout/eval_gauntlet_2.wad`, oracle exit in 201 steps) was generated. Champion:
+**8/8 exits**, zero deaths/damage, 22 steps/episode, p50 1.1 ms. Visual-only transfer:
+**0/8** (stuck at the locked door with key held). This is still a simplified proxy, **not**
+the official hidden Tier 4 suite.
 
 ## Ablation evidence for the research question
 
