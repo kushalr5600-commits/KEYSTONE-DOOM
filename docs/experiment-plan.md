@@ -106,10 +106,28 @@ Repository audit + validator baseline first (done); then encoder/PPO + memory sc
 then curriculum training; then progression tests; then benchmark, simplification, validator,
 packaging. A valid compliant submission always takes priority over an untrained large model.
 
-## Status of this plan
+## Recovery phase (after the first 0/32-exit report)
 
-- [x] Stage 0 audit and runnable baseline (validator PASSED).
-- [x] Architecture implemented, smoke training loop PASSED.
-- [ ] Full training run and checkpoint.
-- [ ] Ablations and held-out evaluation.
-- [ ] Final validator + packaging.
+See `docs/root-cause-analysis.md` for measured root causes. Changes:
+
+1. Fixed exit detection: UDMF exit *linedefs* (special 243) first; `3004` is a Demon, not an
+   exit. This invalidates all earlier distance-shaping targets.
+2. Replaced the 9-Bernoulli action head with a learned categorical over 17 legal macro
+   actions (`action_mode="macro"`), eliminating contradictory-combination suppression.
+3. Generated 16+9 oracle-verified maps (`training/mapgen.py`, `training/verify_maps.py`) for
+   movement / navigation / combat / key progression, with a separate held-out set.
+4. Novelty reduced 0.02 → 0.002; exit 10 → 20; time penalty 0.004.
+5. Added training-only exit-bearing shaping (`bearing_potential=0.5`) because distance
+   shaping gives no gradient for turning when wedged against a wall.
+
+Recovery experiments (all use the same held-out maps/seeds and deterministic argmax):
+
+| Tag | Architecture | Status |
+|---|---|---|
+| `final_v2` | legacy Bernoulli + memory, misidentified exit | measured 0/32 exits |
+| `focused` | legacy Bernoulli, fixed shaping | trained, pending eval |
+| `baseline2` | macro, no GRU/memory/goal/confidence, no bearing shaping | training |
+| `baseline3` | same + bearing shaping | next |
+| `m1`–`m5` | macro + GRU/memory/confidence/goal ablations | after baseline3 |
+
+Do not claim memory helps until `m1`–`m5` show it on held-out maps.
