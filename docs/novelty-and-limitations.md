@@ -40,6 +40,28 @@ Evidence standard: claim improvement **only** if matched-seed ablations (§8 of 
 prompt, §7 of the project specification) show it. Otherwise report neutral/negative and
 simplify.
 
+## Reuse and transfer (2026-11-26 update)
+
+The verified reuse audit is `docs/reuse-and-transfer-audit.md`. It found real downloadable
+weights (notably MIT-licensed `edbeeching/3d_control_deep_rl` with 16 committed checkpoints
+and `fabiononato/doomfly-rl` with HF safetensors), but **no external policy is
+plug-and-play compatible** with the DevForge contract: observations, action heads and
+frameworks all differ. `callumhay/vizdoom_ppo_rnd` has MIT code but **no trained weights**;
+CleanRL has no ViZDoom agents; SB3 Zoo has no Doom models. We therefore:
+
+- reused **ideas** (GRU+CNN design, episodic memory, PPO details) with citations, not code;
+- added a time-boxed **training-only oracle → behavior cloning** pipeline
+  (`training/demos.py`, `training/bc.py`) — the teacher uses privileged map/position data
+  only to create (official observation, macro action) pairs; the student and submission see
+  only permitted observations;
+- added checkpoint migration (`training/migrate.py`) that preserved 46/48 tensors when
+  switching from the 9-Bernoulli head to the 17-macro head.
+
+This keeps the novelty claim limited to the competition-specific integration of
+progression-event memory, confidence-aware retrieval and goal conditioning. We do not claim
+any algorithm as invented, and we do not claim memory improves gameplay until the `m1`–`m5`
+ablations on held-out maps support it.
+
 ## Known limitations
 
 - **Not a metric/topological map.** The memory is a slot-attention dictionary; "topological"
