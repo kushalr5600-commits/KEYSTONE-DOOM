@@ -93,7 +93,7 @@ identically in training and evaluation.
 | Evaluator modification | None. `env/`, `validate.py`, `docs/` official files unchanged. |
 | Network at runtime | None. No socket/requests imports. |
 | Repository writes at runtime | None. Weights read-only; scratch only in memory. |
-| Reward shaping | Training only (`training/ppo.py`). Privileged values are labels never visible to the deployed policy. Intrinsic term ≤0.02/step vs exit 10.0. |
+| Reward shaping | Training only (`training/ppo.py`). Privileged values (including training-WAD exit coordinates via `training/exit_finder.py`) are labels/targets never visible to the deployed policy. Potential-based exit shaping cannot reward loops; intrinsic term ≤0.02/step vs exit 10.0. |
 | Training-only engine changes | None used so far; curriculum varies map/seed only, all on the vanilla engine. |
 
 ## Resource profile (measured locally)

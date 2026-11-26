@@ -31,6 +31,7 @@ train and inference see the same structured fields.
 
 ```
 r = +10.0·exit  -3.0·death
+  + 0.25·(d_prev - gamma·d_now)/128        # potential-based exit shaping
   + 1.0·new_key_flags
   + 0.5·locked_door_disappeared_while_key_held
   + 0.05·kills
@@ -38,6 +39,15 @@ r = +10.0·exit  -3.0·death
   + 0.02·new_observation_signature
   - 0.002·per_step_time_cost
 ```
+
+The exit-distance term is **potential-based** (`F = gamma·Phi(s') - Phi(s)`,
+`Phi(s) = -0.25·distance/128`, so it cannot reward looping and does not change the optimal
+policy). Coordinates come from `training/exit_finder.py` reading the training WAD *outside*
+the agent process; `docs/CONTRACT.md:145-146` explicitly permits privileged reward shaping
+during training, and `docs/RULES.md:19-25` permits training-time engine/map changes. A
+mid-training evaluation of a run without this term showed 0/8 exits, which motivated the
+change; it is recorded here rather than hidden. Maps without an exit thing are excluded from
+the `basics` pool (`training/train.py:FIXTURES_WITH_EXIT`).
 
 Privileged fields (`keys`, `kills`, `damage_taken`, `exit_reached`, `dead`) are used here as
 **labels only** and come from `DoomEnv.privileged_state()`, which the deployed agent never

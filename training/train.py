@@ -22,9 +22,12 @@ import torch
 from doom_env import make_env
 from keystone import KeyStoneConfig, FeatureBuilder, KeyStoneNet, legalize_action
 from training.ppo import PPOTrainer, RewardShaper
+from training.exit_finder import find_exit
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = sorted((ROOT / "tests" / "fixtures").glob("*.wad"))
+FIXTURES_WITH_EXIT = [p for p in FIXTURES + [ROOT / "maps" / "two_rooms.wad"]
+                      if find_exit(p, "MAP01") is not None]
 
 
 def _maps_with_doors():
@@ -46,7 +49,7 @@ def map_pools():
     iwad = Path(torch.__file__).parent.parent  # replaced below with vizdoom location
     import vizdoom as vd
     iwad = Path(vd.__file__).parent / "freedoom2.wad"
-    small = [(str(p), "MAP01") for p in FIXTURES]
+    small = [(str(p), "MAP01") for p in FIXTURES_WITH_EXIT]
     doors = [(str(p), "MAP01") for p in DOOR_FIXTURES]
     full_maps = [(str(iwad), f"MAP{i:02d}") for i in (1, 2, 3, 4, 5)]
     return {
@@ -68,11 +71,12 @@ def stage_for(frac: float) -> str:
 
 
 def build_envs(pool, n, ticks, seed):
-    envs = []
+    envs, exits = [], []
     for i in range(n):
         wad, mp = pool[i % len(pool)]
         envs.append(make_env(wad, mp, episode_ticks=ticks, render_buffers=False))
-    return envs
+        exits.append(find_exit(wad, mp))  # TRAINING ONLY; never given to the agent
+    return envs, exits
 
 
 def save_ckpt(model, cfg, path: Path, step: int, extra=None):
@@ -124,7 +128,7 @@ def main():
     trainer = PPOTrainer(model, optimizer, cfg)
     pools = map_pools()
     stage = stage_for(start_step / max(1, cfg.total_steps))
-    envs = build_envs(pools[stage], cfg.num_envs, args.ticks, cfg.seed)
+    envs, exits = build_envs(pools[stage], cfg.num_envs, args.ticks, cfg.seed)
     obs_list = [e.reset(seed=cfg.seed + i)[0] for i, e in enumerate(envs)]
     states = model.initial_state(cfg.num_envs, device=device)
     prev_evs = [np.zeros(16, np.float32) for _ in envs]
@@ -132,6 +136,7 @@ def main():
     ep_ids = np.zeros(cfg.num_envs, np.int64)
     shaper = RewardShaper(cfg)
     shaper.reset(cfg.num_envs)
+    shaper.exits = list(exits)
 
     ep_stats = {"episodes": 0, "exits": 0, "deaths": 0, "keys": 0, "kills": 0, "steps": 0}
     log_f = log_path.open("a", encoding="utf-8")
@@ -168,13 +173,14 @@ def main():
             stage = new_stage
             for e in envs:
                 e.close()
-            envs = build_envs(pools[stage], cfg.num_envs, args.ticks, cfg.seed + step)
+            envs, exits = build_envs(pools[stage], cfg.num_envs, args.ticks, cfg.seed + step)
             obs_list = [e.reset(seed=cfg.seed + step + i)[0] for i, e in enumerate(envs)]
             states = model.initial_state(cfg.num_envs, device=device)
             prev_evs = [np.zeros(16, np.float32) for _ in envs]
             prev_actions = [np.zeros(9, np.int8) for _ in envs]
             ep_ids = np.zeros(cfg.num_envs, np.int64)
             shaper.reset(cfg.num_envs)
+            shaper.exits = list(exits)
             print(f"[stage] {stage} at step {step}", flush=True)
 
         if step % max(1, cfg.save_interval * buf.T * buf.N) < buf.T * buf.N:

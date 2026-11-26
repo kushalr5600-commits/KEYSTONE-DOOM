@@ -69,6 +69,15 @@ class DoomAgent:
             out, self.state = self.model.step(
                 parts, self.state, torch.tensor([event], device=self.device, dtype=torch.long))
             logits = out["logits"][0].cpu().numpy()
+            # Debug-only snapshot for the demo ledger; never used to choose an action.
+            self.last_goal_probs = out["goal_logits"][0].softmax(-1).cpu().numpy()
+            self.last_confidence = float(out["risk"][0].mean().item())
+            self.last_memory = {
+                "event": out["read_weights"][0].argmax().item(),
+                "events": self.state.mem.etype[0].argmax(-1).detach().cpu().numpy(),
+                "conf": self.state.mem.conf[0, :, 0].detach().cpu().numpy(),
+                "age": self.state.mem.age[0, :, 0].detach().cpu().numpy(),
+            }
         sampled = (logits > 0.0).astype(np.int8)  # argmax per Bernoulli button
         action = legalize_action(sampled, self.prev_action)
         self.prev_action = action.copy()
