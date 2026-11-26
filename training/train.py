@@ -102,6 +102,9 @@ def main():
     ap.add_argument("--ticks", type=int, default=2100)
     ap.add_argument("--resume", default=None)
     ap.add_argument("--tag", default="main")
+    ap.add_argument("--pool", default=None,
+                    choices=["basics", "doors", "mixed", "gauntlet"],
+                    help="force a single map pool for the whole run (curriculum override)")
     args = ap.parse_args()
 
     torch.set_num_threads(max(1, args.threads))
@@ -129,7 +132,7 @@ def main():
 
     trainer = PPOTrainer(model, optimizer, cfg)
     pools = map_pools()
-    stage = stage_for(start_step / max(1, cfg.total_steps))
+    stage = args.pool or stage_for(start_step / max(1, cfg.total_steps))
     envs, exits = build_envs(pools[stage], cfg.num_envs, args.ticks, cfg.seed)
     obs_list = [e.reset(seed=cfg.seed + i)[0] for i, e in enumerate(envs)]
     states = model.initial_state(cfg.num_envs, device=device)
@@ -170,7 +173,7 @@ def main():
         if step % (cfg.log_interval * buf.T * buf.N) < buf.T * buf.N:
             print(json.dumps(rec), flush=True)
 
-        new_stage = stage_for(step / max(1, cfg.total_steps))
+        new_stage = args.pool or stage_for(step / max(1, cfg.total_steps))
         if new_stage != stage:
             stage = new_stage
             for e in envs:

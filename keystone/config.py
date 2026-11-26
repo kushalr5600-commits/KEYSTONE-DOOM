@@ -40,17 +40,18 @@ class KeyStoneConfig:
     num_envs: int = 4
 
     # Shaping (training only; never used by the deployed agent)
-    reward_exit: float = 10.0
+    reward_exit: float = 20.0
     reward_death: float = -3.0
     # Training-only distance-progress shaping toward the exit: k*(d_prev-d_now)/128.
     # Zero for standing still / loops; never part of the deployed observation.
-    exit_potential: float = 0.5
+    exit_potential: float = 1.0
     reward_key: float = 1.0
     reward_unlock: float = 0.5
-    reward_new_signature: float = 0.02
+    # Novelty must never rival exit completion: 0.002 vs exit 20.0.
+    reward_new_signature: float = 0.002
     reward_kill: float = 0.05
     damage_penalty: float = 0.005
-    time_penalty: float = 0.002
+    time_penalty: float = 0.004
 
     seed: int = 0
     total_steps: int = 50_000
