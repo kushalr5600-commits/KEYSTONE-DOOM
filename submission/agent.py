@@ -1,7 +1,6 @@
 """KEYSTONE-DOOM submission agent.
 
-Loads the trained champion checkpoint (transfer/weights/champion_frozen.pt)
-with the MIT-licensed pretrained visual stem (transfer/weights/find_return_11.pth.tar).
+Loads the trained champion checkpoint from submission/weights/.
 Uses only the official observation dict at inference; no privileged state, no network,
 no training/ imports.
 """
@@ -16,8 +15,7 @@ import torch
 from keystone import FeatureBuilder, KeyStoneConfig, legalize_action, macro_action
 from transfer.cnn_adapter import TransferKeyStoneNet
 
-ROOT = Path(__file__).resolve().parents[1]
-W = ROOT / "transfer" / "weights"
+W = Path(__file__).resolve().parent / "weights"
 
 
 class DoomAgent:
