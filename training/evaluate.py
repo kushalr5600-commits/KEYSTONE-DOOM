@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from doom_env import make_env
-from keystone import FeatureBuilder, KeyStoneConfig, KeyStoneNet, legalize_action
+from keystone import FeatureBuilder, KeyStoneConfig, KeyStoneNet, legalize_action, macro_action
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "experiments" / "results.csv"
@@ -55,7 +55,11 @@ def run_episode(model, cfg, fb, wad, map_name, seed, ticks, device):
             confs.append(float(out["risk"][0].mean().item()))
             used.append(int((out["read_weights"][0] > 1e-2).sum().item()))
         lat.append((time.perf_counter() - t1) * 1000.0)
-        action = legalize_action((logits > 0).astype(np.int8), prev_act)
+        if cfg.action_mode == "macro":
+            chosen = macro_action(int(np.argmax(logits)))
+        else:
+            chosen = (logits > 0).astype(np.int8)
+        action = legalize_action(chosen, prev_act)
         if np.array_equal(action, prev_act):
             repeated += 1
         sig = bytes(np.clip((obs["rays"]["distance"] * 16).astype(np.uint8), 0, 255))

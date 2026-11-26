@@ -23,6 +23,7 @@ from keystone import (
     KeyStoneConfig,
     KeyStoneNet,
     legalize_action,
+    macro_action,
 )
 
 SUBMISSION_DIR = Path(__file__).resolve().parent
@@ -78,7 +79,10 @@ class DoomAgent:
                 "conf": self.state.mem.conf[0, :, 0].detach().cpu().numpy(),
                 "age": self.state.mem.age[0, :, 0].detach().cpu().numpy(),
             }
-        sampled = (logits > 0.0).astype(np.int8)  # argmax per Bernoulli button
+        if self.cfg.action_mode == "macro":
+            sampled = macro_action(int(np.argmax(logits)))
+        else:
+            sampled = (logits > 0.0).astype(np.int8)  # argmax per Bernoulli button
         action = legalize_action(sampled, self.prev_action)
         self.prev_action = action.copy()
         self.prev_evidence = evidence

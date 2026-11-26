@@ -11,7 +11,7 @@ from .config import KeyStoneConfig
 from .features import FEATURE_DIM, EVIDENCE_DIM, FeatureBuilder
 from .memory import EventMemory, MemoryState
 from .model import KeyStoneNet, AgentState
-from .actions import legalize_action
+from .actions import MACRO_ACTIONS, MACRO_NAMES, legalize_action, macro_action
 
 __all__ = [
     "KeyStoneConfig",
@@ -22,5 +22,5 @@ __all__ = [
     "MemoryState",
     "KeyStoneNet",
     "AgentState",
-    "legalize_action",
+    "legalize_action", "macro_action", "MACRO_ACTIONS", "MACRO_NAMES",
 ]

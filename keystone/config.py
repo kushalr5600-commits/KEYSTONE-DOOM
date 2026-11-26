@@ -14,6 +14,11 @@ from pathlib import Path
 @dataclass
 class KeyStoneConfig:
     # Architecture
+    # Action head: "bernoulli" (legacy 9 independent buttons) or "macro" (a learned
+    # categorical over legal 9-bit button combinations). Macro mode is the simple baseline.
+    action_mode: str = "bernoulli"
+    num_macros: int = 17
+
     hidden: int = 128
     embed: int = 32
     memory_slots: int = 16

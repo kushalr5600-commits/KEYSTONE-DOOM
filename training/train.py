@@ -46,29 +46,36 @@ DOOR_FIXTURES = _maps_with_doors()
 
 
 def map_pools():
-    iwad = Path(torch.__file__).parent.parent  # replaced below with vizdoom location
+    """Curriculum built from oracle-verified generated maps (training.mapgen --verify)."""
+    t = ROOT / "maps" / "train"
+    verified = lambda pat: [(str(p), "MAP01") for p in sorted(t.glob(pat))]
+    small = [(str(p), "MAP01") for p in FIXTURES_WITH_EXIT]
     import vizdoom as vd
     iwad = Path(vd.__file__).parent / "freedoom2.wad"
-    small = [(str(p), "MAP01") for p in FIXTURES_WITH_EXIT]
-    doors = [(str(p), "MAP01") for p in DOOR_FIXTURES]
     full_maps = [(str(iwad), f"MAP{i:02d}") for i in (1, 2, 3, 4, 5)]
     return {
-        "basics": small,
-        "doors": doors + small[:3],
-        "mixed": doors + full_maps[:2] + small[:2],
-        "gauntlet": doors + full_maps + small[:2],
+        "move": verified("move_*.wad"),
+        "nav": verified("nav_*.wad"),
+        "combat": verified("combat_*.wad"),
+        "progression": verified("key_[12].wad"),
+        "basics": verified("move_*.wad") + verified("nav_*.wad"),
+        "doors": verified("key_[12].wad") + verified("nav_*.wad")[:2],
+        "mixed": verified("combat_*.wad") + verified("key_[12].wad"),
+        "gauntlet": verified("combat_*.wad") + verified("key_[12].wad")
+                    + verified("nav_*.wad")[:2] + full_maps[:2] + small[:2],
     }
 
 
 def stage_for(frac: float) -> str:
-    # Long basics phase: learning exit completion on tiny maps is the score-dominant
-    # behaviour; only then move to doors and the larger gauntlet maps.
-    if frac < 0.50:
-        return "basics"
-    if frac < 0.70:
-        return "doors"
-    if frac < 0.85:
-        return "mixed"
+    # Verified objectives: orientation -> navigation -> combat -> progression -> mixed.
+    if frac < 0.20:
+        return "move"
+    if frac < 0.40:
+        return "nav"
+    if frac < 0.60:
+        return "combat"
+    if frac < 0.80:
+        return "progression"
     return "gauntlet"
 
 
@@ -103,7 +110,8 @@ def main():
     ap.add_argument("--resume", default=None)
     ap.add_argument("--tag", default="main")
     ap.add_argument("--pool", default=None,
-                    choices=["basics", "doors", "mixed", "gauntlet"],
+                    choices=["move", "nav", "combat", "progression", "basics",
+                             "doors", "mixed", "gauntlet"],
                     help="force a single map pool for the whole run (curriculum override)")
     args = ap.parse_args()
 

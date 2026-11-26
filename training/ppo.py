@@ -19,7 +19,8 @@ import torch
 from torch import nn
 from torch.distributions import Bernoulli
 
-from keystone import AgentState, KeyStoneConfig, KeyStoneNet, legalize_action
+from keystone import AgentState, KeyStoneConfig, KeyStoneNet, legalize_action, macro_action
+from torch.distributions import Categorical
 
 
 @dataclass
@@ -33,6 +34,7 @@ class Rollout:
     mem_age: np.ndarray     # (T,N,K,1)
     actions: np.ndarray     # (T,N,9)
     prev_actions: np.ndarray
+    macro_idx: np.ndarray   # (T,N) sampled macro index (macro action mode)
     old_logp: np.ndarray    # (T,N)
     values: np.ndarray      # (T,N)
     rewards: np.ndarray     # (T,N)
@@ -134,6 +136,7 @@ class PPOTrainer:
             np.zeros((T, N, K, D), np.float32), np.zeros((T, N, K, NT), np.float32),
             np.zeros((T, N, K, 1), np.float32), np.zeros((T, N, K, 1), np.float32),
             np.zeros((T, N, 9), np.int8), np.zeros((T, N, 9), np.int8),
+            np.zeros((T, N), np.int64),
             np.zeros((T, N), np.float32), np.zeros((T, N), np.float32),
             np.zeros((T, N), np.float32), np.zeros((T, N), np.float32),
             np.zeros((T, N), np.int64),
@@ -160,12 +163,21 @@ class PPOTrainer:
                 x = torch.from_numpy(feats)
                 parts = fb.split(x)
                 out, new_state = self.model.step(parts, states, torch.from_numpy(events))
-                dist = Bernoulli(logits=out["logits"])
-                sample = dist.sample().numpy().astype(np.int8)
-                actions = np.stack([
-                    legalize_action(sample[i], prev_actions[i]) for i in range(N)
-                ])
-                logp = dist.log_prob(torch.from_numpy(actions.astype(np.float32))).sum(-1).numpy()
+                if cfg.action_mode == "macro":
+                    dist = Categorical(logits=out["logits"])
+                    idx = dist.sample().numpy()
+                    actions = np.stack([
+                        legalize_action(macro_action(idx[i]), prev_actions[i]) for i in range(N)
+                    ])
+                    logp = dist.log_prob(torch.from_numpy(idx)).numpy()
+                    buf.macro_idx[t] = idx
+                else:
+                    dist = Bernoulli(logits=out["logits"])
+                    sample = dist.sample().numpy().astype(np.int8)
+                    actions = np.stack([
+                        legalize_action(sample[i], prev_actions[i]) for i in range(N)
+                    ])
+                    logp = dist.log_prob(torch.from_numpy(actions.astype(np.float32))).sum(-1).numpy()
                 buf.feats[t], buf.events[t] = feats, events
                 buf.actions[t], buf.prev_actions[t] = actions, prev_actions
                 buf.old_logp[t] = logp
@@ -227,6 +239,7 @@ class PPOTrainer:
         f = buf.feats.reshape(flat, -1)
         ev_flat = buf.events.reshape(flat)
         act_flat = buf.actions.reshape(flat, 9)
+        macro_flat = buf.macro_idx.reshape(flat)
         lp_flat = buf.old_logp.reshape(flat)
         adv_flat = adv.reshape(flat)
         ret_flat = ret.reshape(flat)
@@ -264,7 +277,10 @@ class PPOTrainer:
                 seq_feats["mask"] = seq_feats["mask"].view(L, M, 32)
 
                 events = to_dev(ev_flat[idx]).long().transpose(0, 1)
-                actions = to_dev(act_flat[idx]).float().transpose(0, 1)
+                if cfg.action_mode == "macro":
+                    actions = to_dev(macro_flat[idx]).long().transpose(0, 1)
+                else:
+                    actions = to_dev(act_flat[idx]).float().transpose(0, 1)
                 old_logp = to_dev(lp_flat[idx]).transpose(0, 1)
                 adv_mb = to_dev(adv_flat[idx]).transpose(0, 1)
                 ret_mb = to_dev(ret_flat[idx]).transpose(0, 1)
@@ -278,15 +294,21 @@ class PPOTrainer:
                                 to_dev(mc[chunk]), to_dev(ma[chunk])),
                 )
                 out, _ = self.model.forward_sequence(seq_feats, state0, events)
-                dist = Bernoulli(logits=out["logits"])
-                logp = dist.log_prob(actions).sum(-1)
+                if cfg.action_mode == "macro":
+                    dist = Categorical(logits=out["logits"])
+                    logp = dist.log_prob(actions)
+                    entropy_term = dist.entropy()
+                else:
+                    dist = Bernoulli(logits=out["logits"])
+                    logp = dist.log_prob(actions).sum(-1)
+                    entropy_term = dist.entropy().sum(-1)
                 ratio = torch.exp(logp - old_logp)
                 obj = torch.min(ratio * adv_mb,
                                 torch.clamp(ratio, 1 - cfg.clip_coef, 1 + cfg.clip_coef) * adv_mb)
                 denom = mask.sum().clamp(min=1.0)
                 policy_loss = -(obj * mask).sum() / denom
                 value_loss = ((out["value"] - ret_mb).pow(2) * mask).sum() / denom
-                entropy = (dist.entropy().sum(-1) * mask).sum() / denom
+                entropy = (entropy_term * mask).sum() / denom
                 gd = torch.distributions.Categorical(logits=out["goal_logits"])
                 goal_ent = (gd.entropy() * mask).sum() / denom
                 loss = (policy_loss + cfg.value_coef * value_loss

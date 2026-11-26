@@ -66,8 +66,10 @@ class KeyStoneNet(nn.Module):
         self.goal_embed = nn.Parameter(torch.randn(cfg.num_goals, D) * 0.1)
         self.risk_head = nn.Sequential(nn.Linear(H + D, D), nn.Tanh(), nn.Linear(D, 1), nn.Sigmoid())
 
+        self.action_dim = int(cfg.num_macros) if cfg.action_mode == "macro" else 9
         actor_in = H + H + D + D
-        self.actor = nn.Sequential(nn.Linear(actor_in, H), nn.Tanh(), nn.Linear(H, 9))
+        self.actor = nn.Sequential(nn.Linear(actor_in, H), nn.Tanh(),
+                                   nn.Linear(H, self.action_dim))
         self.critic = nn.Sequential(nn.Linear(H + H + D, H), nn.Tanh(), nn.Linear(H, 1))
 
         self.apply(self._init_weights)
