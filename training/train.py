@@ -23,6 +23,7 @@ from doom_env import make_env
 from keystone import KeyStoneConfig, FeatureBuilder, KeyStoneNet, legalize_action
 from training.ppo import PPOTrainer, RewardShaper
 from training.exit_finder import find_exit
+from training.device import add_device_arg, describe, get_device
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = sorted((ROOT / "tests" / "fixtures").glob("*.wad"))
@@ -113,8 +114,12 @@ def main():
                     choices=["move", "nav", "combat", "progression", "basics",
                              "doors", "mixed", "gauntlet"],
                     help="force a single map pool for the whole run (curriculum override)")
+    ap.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     args = ap.parse_args()
 
+    from training.device import describe, get_device
+    device = get_device(args.device)
+    print(f"training device: {describe(device)}", flush=True)
     torch.set_num_threads(max(1, args.threads))
     cfg = KeyStoneConfig.load(args.config) if args.config else KeyStoneConfig()
     cfg.total_steps = args.steps
@@ -127,7 +132,6 @@ def main():
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     fb = FeatureBuilder(cfg)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = KeyStoneNet(cfg).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate, eps=cfg.adam_eps)
     start_step = 0

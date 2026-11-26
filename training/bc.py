@@ -20,6 +20,7 @@ import torch
 import torch.nn.functional as F
 
 from keystone import KeyStoneConfig, KeyStoneNet
+from training.device import add_device_arg, describe, get_device
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,15 +34,18 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--init", default=None, help="optional compatible checkpoint")
     ap.add_argument("--out", required=True)
+    add_device_arg(ap)
     args = ap.parse_args()
 
+    device = get_device(args.device)
+    print(f"device: {describe(device)}", flush=True)
     torch.set_num_threads(4)
     data = np.load(ROOT / args.demos)
-    X = torch.from_numpy(data["X"])
-    A = torch.from_numpy(data["A"]).long()
+    X = torch.from_numpy(data["X"]).to(device, non_blocking=True)
+    A = torch.from_numpy(data["A"]).long().to(device, non_blocking=True)
     cfg = KeyStoneConfig.load(ROOT / args.config)
     assert cfg.action_mode == "macro", "BC requires the macro action head"
-    model = KeyStoneNet(cfg)
+    model = KeyStoneNet(cfg).to(device)
     if args.init:
         ck = torch.load(ROOT / args.init, map_location="cpu", weights_only=False)
         model.load_state_dict(ck["model"])
@@ -50,25 +54,31 @@ def main():
     rng = np.random.default_rng(0)
     n = X.shape[0]
     for epoch in range(args.epochs):
+        import time as _time
+        t0 = _time.perf_counter()
         perm = rng.permutation(n)
         loss_sum = 0.0
         correct = 0
         for start in range(0, n, args.batch):
-            idx = perm[start:start + args.batch]
+            idx = torch.from_numpy(perm[start:start + args.batch]).to(device, non_blocking=True)
             x = X[idx]
             fb = __import__("keystone").FeatureBuilder(cfg).split(x)
-            out, _ = model.step(fb, model.initial_state(len(idx)), torch.zeros(len(idx), dtype=torch.long))
+            out, _ = model.step(fb, model.initial_state(len(idx), device=device),
+                                torch.zeros(len(idx), dtype=torch.long, device=device))
             loss = F.cross_entropy(out["logits"], A[idx])
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
             loss_sum += float(loss.detach()) * len(idx)
             correct += int((out["logits"].argmax(-1) == A[idx]).sum())
-        print(f"epoch {epoch+1}/{args.epochs} loss={loss_sum/n:.4f} acc={correct/n:.3f}", flush=True)
+        dt = _time.perf_counter() - t0
+        print(f"epoch {epoch+1}/{args.epochs} loss={loss_sum/n:.4f} acc={correct/n:.3f} "
+              f"samples/s={n/dt:.0f} seconds={dt:.1f}", flush=True)
 
     out = ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model": model.state_dict(), "config": json.loads(cfg.to_json()),
+    torch.save({"model": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+                "config": json.loads(cfg.to_json()),
                 "step": 0, "bc_from": str(args.demos)}, out)
     cfg.save(out.parent / "config.json")
     print("wrote", out)
