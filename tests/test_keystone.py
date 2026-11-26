@@ -141,6 +141,21 @@ def test_inference_latency():
     assert p95 < 40.0, f"p95 latency {p95:.1f} ms exceeds the 40 ms/decision budget"
 
 
+def test_reward_shaper_is_finite():
+    from training.ppo import RewardShaper
+    from training.exit_finder import find_exit
+    cfg = KeyStoneConfig()
+    cfg.bearing_potential = 0.5
+    shaper = RewardShaper(cfg)
+    ex = find_exit(ROOT / "maps" / "train" / "move_0.wad", "MAP01")
+    shaper.exits = [ex]
+    base = {"x": 96.0, "y": 96.0, "angle": 135.0, "keys": np.zeros(6),
+            "kills": 0, "damage_taken": 0.0, "exit_reached": False, "dead": False}
+    nxt = dict(base, x=100.0, angle=120.0)
+    r = shaper(0, base, nxt, np.zeros(64, np.int64), np.zeros(9, np.int8))
+    assert isinstance(r, float) and np.isfinite(r)
+
+
 def test_event_tag_key_and_locked_door():
     fb = FeatureBuilder(KeyStoneConfig())
     ev = np.zeros(EVIDENCE_DIM, np.float32)
