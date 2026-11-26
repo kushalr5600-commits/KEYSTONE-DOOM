@@ -29,14 +29,16 @@ def main():
     ap.add_argument("--config", default="configs/baseline_macro.json")
     ap.add_argument("--patterns", nargs="*", default=None,
                     help="optional WAD glob patterns, e.g. key_[12]; default all curriculum maps")
+    ap.add_argument("--dir", default="maps/train", help="directory to search for WADs")
     args = ap.parse_args()
 
     cfg = KeyStoneConfig.load(ROOT / args.config)
     fb = FeatureBuilder(cfg)
     patterns = args.patterns or ["move_*", "nav_*", "combat_*", "key_[12]"]
     maps = []
+    base_dir = ROOT / args.dir
     for pat in patterns:
-        maps.extend(sorted((ROOT / "maps" / "train").glob(f"{pat}.wad")))
+        maps.extend(sorted(base_dir.glob(f"{pat}.wad")))
     maps = list(dict.fromkeys(maps))
     print("demo maps:", [p.name for p in maps], flush=True)
     X, RGB, E, A, I = [], [], [], [], []
