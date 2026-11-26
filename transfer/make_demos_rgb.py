@@ -39,7 +39,7 @@ def main():
         maps.extend(sorted((ROOT / "maps" / "train").glob(f"{pat}.wad")))
     maps = list(dict.fromkeys(maps))
     print("demo maps:", [p.name for p in maps], flush=True)
-    X, RGB, E, A = [], [], [], []
+    X, RGB, E, A, I = [], [], [], [], []
     episodes, exits = 0, 0
     for wad in maps:
         ex, keys, doors = find_exit(wad), find_keys(wad), find_doors(wad)
@@ -65,6 +65,7 @@ def main():
                 RGB.append(cv2.resize(obs["rgb"], (112, 64), interpolation=cv2.INTER_AREA))
                 E.append(event)
                 A.append(nearest_macro(bits))
+                I.append(episodes)
                 obs, _, term, trunc, _ = env.step(bits)
                 prev_ev, prev_act = ev, bits.copy()
                 if term or trunc:
@@ -74,7 +75,8 @@ def main():
             env.close()
     out = ROOT / args.out
     np.savez_compressed(out, X=np.asarray(X, np.float32), RGB=np.asarray(RGB, np.uint8),
-                        E=np.asarray(E, np.int64), A=np.asarray(A, np.int64))
+                        E=np.asarray(E, np.int64), A=np.asarray(A, np.int64),
+                        I=np.asarray(I, np.int64))
     print(f"{episodes} episodes, {exits} exits, {len(X)} transitions -> {out}")
 
 
