@@ -1,0 +1,74 @@
+{
+  "source": "https://huggingface.co/datasets/Yunncheng/gamewam-vizdoom",
+  "license": "Apache-2.0 (dataset card + HF API verified)",
+  "scenario": "defend_the_center (combat only)",
+  "files": [
+    {
+      "path": "data_samples\\gamewam\\defend\\0.parquet",
+      "bytes": 21213,
+      "sha256": "fe6a070d684a8e72beb1e36a0cec30e1e4a6ab2409bfc039ba4460e39212c54a"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\0.mp4",
+      "bytes": 23638400,
+      "sha256": "4fb2a7b08d2a3e91244073ff9b7dc0b848eefcb9e6235d8a357a0330af4f5efe"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\1.parquet",
+      "bytes": 21316,
+      "sha256": "196f59d7f5e240c84dc0f144d301ac278032e7e1245bd00e66ed55dfa7623141"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\1.mp4",
+      "bytes": 21997229,
+      "sha256": "ec3378d85a591b839c3065267a06128819eb739182b89fb4e3fee47fd7564501"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\2.parquet",
+      "bytes": 20652,
+      "sha256": "5e8b30f7121ba2632ed460be940000085b908e32097100ce8e8a64d946b00588"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\2.mp4",
+      "bytes": 22047763,
+      "sha256": "e4e7d4ce08f2f12a9cdd81af99b5b964ee3cd63142e27ea1002c7997029f4973"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\3.parquet",
+      "bytes": 19821,
+      "sha256": "54a23dfc5c52854a26e66705306b0a821d6be8136d1ccb5e2eadd9fbc1d2fca8"
+    },
+    {
+      "path": "data_samples\\gamewam\\defend\\3.mp4",
+      "bytes": 20056272,
+      "sha256": "840e851c63d95f04b9725921323aae9c69448af36a6a9e210fc10081dae29bfa"
+    }
+  ],
+  "stride": 4,
+  "total_sampled_frames": 955,
+  "kept_frames": 943,
+  "dropped_duplicates": 12,
+  "dropped_low_variance": 0,
+  "action_histogram": {
+    "stand": 41,
+    "fwd": 0,
+    "turn_left": 460,
+    "turn_right": 165,
+    "attack": 101,
+    "attack_left": 139,
+    "attack_right": 37,
+    "fwd_attack": 0
+  },
+  "split_by_episode": {
+    "train": [
+      0,
+      1,
+      2
+    ],
+    "val": [
+      3
+    ]
+  },
+  "preprocessing": "BGR->RGB, resize 112x64, /255; canonical action mapped to 8 macro classes",
+  "notes": "External data used only for offline representation experiments; no test seeds/maps."
+}
