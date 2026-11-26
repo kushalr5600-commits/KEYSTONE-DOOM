@@ -44,8 +44,12 @@ Per-map for the final candidate: 8/8 on both move, both nav, combat, key_1; 8/8 
 the two newly generated oracle-verified key maps (`eval_key_2`, `eval_key_3`). No
 navigation/combat regression. Latency p50 ≈1.0–1.3 ms, p99 ≈1.9–2.2 ms.
 
-A 16-episode full-suite confirmation (`final_prog16`) was launched; results will be appended
-to `transfer/transfer_results.csv` and `transfer/final_eval16.log`.
+**16-episode full-suite confirmation:** `final_prog16` achieved **128/128 exits (1.000)**
+across all eight holdout maps (including both new independently generated key maps), with
+zero deaths and zero damage. One first-episode p99 latency spike of 71 ms was observed during
+warm-up; subsequent p99 values were ~1.5–4 ms, all far below the 5 s per-action timeout and
+the 40 ms average budget. Full results: `transfer/final_eval16.log`,
+`transfer/transfer_results.csv`.
 
 ## Experiments kept / rejected
 
