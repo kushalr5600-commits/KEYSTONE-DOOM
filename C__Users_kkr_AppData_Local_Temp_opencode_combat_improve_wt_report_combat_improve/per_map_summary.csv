@@ -1,0 +1,16 @@
+map,n,base_n,base_exits,base_deaths,base_damage,base_keys,base_kills,base_timeouts,cand_n,cand_exits,cand_deaths,cand_damage,cand_keys,cand_kills,cand_timeouts,delta_exit,delta_deaths,delta_damage,delta_keys,delta_kills
+maps/holdout/combat_holdout_0.wad:MAP01,8,8,8,0,207.0,0,0,0,8,8,0,222.0,0,2,0,0,0,15.0,0,2
+maps/holdout/combat_holdout_1.wad:MAP01,8,8,8,0,162.0,0,0,0,8,8,0,135.0,0,4,0,0,0,-27.0,0,4
+maps/holdout/eval_combat_0.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/holdout/eval_gauntlet_2.wad:MAP01,8,8,8,0,0.0,8,0,0,8,8,0,0.0,8,0,0,0,0,0.0,0,0
+maps/holdout/eval_key_1.wad:MAP01,8,8,8,0,0.0,8,0,0,8,8,0,0.0,8,0,0,0,0,0.0,0,0
+maps/holdout/eval_key_2.wad:MAP01,8,8,8,0,0.0,8,0,0,8,8,0,0.0,8,0,0,0,0,0.0,0,0
+maps/holdout/eval_key_3.wad:MAP01,8,8,8,0,0.0,8,0,0,8,8,0,0.0,8,0,0,0,0,0.0,0,0
+maps/holdout/eval_move_0.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/holdout/eval_move_1.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/holdout/eval_nav_0.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/holdout/eval_nav_1.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/train/door_simple_0.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/train/door_simple_1.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/train/door_simple_2.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0
+maps/train/door_simple_3.wad:MAP01,8,8,8,0,0.0,0,0,0,8,8,0,0.0,0,0,0,0,0,0.0,0,0

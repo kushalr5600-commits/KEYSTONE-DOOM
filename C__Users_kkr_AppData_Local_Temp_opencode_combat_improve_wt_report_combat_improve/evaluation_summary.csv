@@ -1,0 +1,4 @@
+scope,agent,n,exits,deaths,damage,keys,kills,timeouts,source
+matched_15map_120ep,doorpolicynet_baseline,120,120,0,369.0,32,0,0,existing_verified_log: transfer/verify_candidate_full_v2.json (copied from integrate; matches prior verified DoorPolicyNet 120/120)
+matched_15map_120ep,combat_improve_defendcenter,120,120,0,357.0,32,6,0,new_run_this_session: transfer/verify_combat_improve_full_v2.json
+combat_holdout_8ep_smoke,combat_improve_defendcenter,8,8,0,168.0,0,3,0,new_run_this_session: transfer/smoke_combat_holdout.json
